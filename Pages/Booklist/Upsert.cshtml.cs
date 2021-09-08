@@ -6,15 +6,16 @@ using Microsoft.AspNetCore.Mvc;
 using aspnet.Model;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
 
 namespace aspnet.Pages.Booklist
 {
-  public class EditModel : PageModel
+  public class UpsertModel : PageModel
   {
     private DBclass _db;
 
 
-    public EditModel(DBclass db)
+    public UpsertModel(DBclass db)
     {
       _db = db;
     }
@@ -22,19 +23,36 @@ namespace aspnet.Pages.Booklist
     [BindProperty]
     public Book Books { get; set; }
 
-    public async Task OnGet(int id)
+    public async Task<IActionResult> OnGet(int? id)
     {
-      Books = await _db.Books.FindAsync(id);
+      Books = new Book();
+      if (id == null)
+      {
+        return Page();
+      }
+      Books = await _db.Books.FirstOrDefaultAsync(u => u.id == id);
+      if (Books == null)
+      {
+        return NotFound();
+      }
+
+      return Page();
+
     }
 
     public async Task<IActionResult> OnPost()
     {
       if (ModelState.IsValid)
       {
-        var Bookfromdb = await _db.Books.FindAsync(Books.id);
-        Bookfromdb.Name = Books.Name;
-        Bookfromdb.Author = Books.Author;
-        Bookfromdb.ISBN = Books.ISBN;
+        if (Books.id == 0)
+        {
+          _db.Books.Add(Books);
+        }
+
+        else
+        {
+          _db.Books.Update(Books);
+        }
 
         await _db.SaveChangesAsync();
 
